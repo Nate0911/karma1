@@ -6,30 +6,34 @@
     <title>Reddit OAuth Example</title>
 </head>
 <body>
-    <h1>Reddit OAuth Login</h1>
-    <button onclick="redirectToReddit()">Login with Reddit</button>
+    <h1>Login with Reddit</h1>
+    <button id="loginButton">Login with Reddit</button>
 
     <script>
         // Reddit OAuth settings
-        const clientId = 'svkx52WYcdXXTuAdjnI1ng'; // Replace with your Reddit client ID
+        const clientId = 'svkx52WYcdXXTuAdjnI1ng'; // Your Reddit client ID
         const redirectUri = 'http://localhost:8000/callback'; // Replace with your redirect URI
-        const userAgent = 'YOUR_USER_AGENT'; // Replace with your custom user agent
+        const userAgent = 'myRedditApp:v1.0 (by /u/YourRedditUsername)'; // Custom user agent string
 
-        // Function to redirect user to Reddit's OAuth authorization page
+        // Function to redirect user to Reddit for OAuth authorization
         function redirectToReddit() {
             const oauthUrl = `https://www.reddit.com/api/v1/authorize?client_id=${clientId}&response_type=code&state=random_state_string&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read,identity`;
-            window.location.href = oauthUrl; // Redirect to Reddit for authentication
+            window.location.href = oauthUrl; // Redirect the user to Reddit for authentication
         }
 
-        // Check if we have a code in the URL (from Reddit's redirect)
+        // Add event listener to the button after the page has loaded
+        document.getElementById('loginButton').addEventListener('click', function() {
+            redirectToReddit(); // Call the redirect function when button is clicked
+        });
+
+        // When the page loads, check for the "code" parameter in the URL (from Reddit's redirect)
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
             
             if (code) {
-                alert('Authorization Code: ' + code);
-                // Normally, here you'd send the code to your server to exchange for an access token
-                // For this example, we just alert the code to the user
+                alert('Authorization Code: ' + code); // Display the authorization code (for testing)
+                // Normally, you would now send this code to your backend to exchange for an access token.
             }
         };
     </script>
