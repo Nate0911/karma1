@@ -3,17 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reddit OAuth Example</title>
+    <title>Reddit OAuth - Display Karma</title>
 </head>
 <body>
-    <h1>Login with Reddit</h1>
+    <h1>Login with Reddit to Check Your Karma</h1>
     <button id="loginButton">Login with Reddit</button>
+
+    <div id="karmaContainer" style="display: none;">
+        <h2>Your Karma: <span id="karmaCount"></span></h2>
+    </div>
 
     <script>
         // Reddit OAuth settings
         const clientId = 'svkx52WYcdXXTuAdjnI1ng'; // Your Reddit client ID
-        const redirectUri = 'http://localhost:8000/callback'; // Replace with your redirect URI
-        const userAgent = 'myRedditApp:v1.0 (by /u/YourRedditUsername)'; // Custom user agent string
+        const redirectUri = window.location.href; // Redirect to the same GitHub page
+        const userAgent = 'myRedditApp:v1.0 (by /u/YourRedditUsername)'; // Custom user-agent string
 
         // Function to redirect user to Reddit for OAuth authorization
         function redirectToReddit() {
@@ -32,10 +36,69 @@
             const code = urlParams.get('code');
             
             if (code) {
-                alert('Authorization Code: ' + code); // Display the authorization code (for testing)
-                // Normally, you would now send this code to your backend to exchange for an access token.
+                // Display the code (for testing purposes)
+                alert('Authorization Code: ' + code);
+
+                // Exchange the code for an access token (via Reddit API)
+                fetchAccessToken(code);
             }
         };
+
+        // Function to exchange the authorization code for an access token
+        function fetchAccessToken(code) {
+            const tokenUrl = 'https://www.reddit.com/api/v1/access_token';
+            const data = new URLSearchParams();
+            data.append('grant_type', 'authorization_code');
+            data.append('code', code);
+            data.append('redirect_uri', redirectUri);
+
+            // Make a POST request to Reddit API to get the access token
+            fetch(tokenUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Basic ' + btoa(clientId + ':') // Reddit requires client ID in base64
+                },
+                body: data
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.access_token) {
+                    // Access token received, use it to fetch the karma count
+                    fetchKarmaCount(data.access_token);
+                } else {
+                    alert('Failed to get access token');
+                }
+            })
+            .catch(error => console.error('Error fetching access token:', error));
+        }
+
+        // Function to fetch the user's karma count from Reddit
+        function fetchKarmaCount(accessToken) {
+            // Reddit API URL for fetching user info
+            const apiUrl = 'https://oauth.reddit.com/api/v1/me';
+
+            fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'bearer ' + accessToken,
+                    'User-Agent': userAgent
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data) {
+                    // Extract karma count from the response
+                    const karmaCount = data.total_karma;
+
+                    // Display the karma count on the page
+                    document.getElementById('karmaCount').textContent = karmaCount;
+                    document.getElementById('karmaContainer').style.display = 'block';
+                } else {
+                    alert('Failed to fetch karma data');
+                }
+            })
+            .catch(error => console.error('Error fetching karma count:', error));
+        }
     </script>
 </body>
 </html>
