@@ -1,104 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Reddit Karma Checker v2</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 2rem;
-      background-color: #eef1f7;
-    }
-    h2 {
-      color: #0079d3;
-    }
-    button {
-      padding: 10px 16px;
-      font-size: 16px;
-      background-color: #0079d3;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    #result {
-      margin-top: 20px;
-      background-color: #fff;
-      border: 1px solid #ccc;
-      padding: 16px;
-      border-radius: 5px;
-      white-space: pre-wrap;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reddit OAuth Example</title>
 </head>
 <body>
+    <h1>Reddit OAuth Login</h1>
+    <button onclick="redirectToReddit()">Login with Reddit</button>
 
-  <h2>🚀 Reddit Karma Checker v2</h2>
-  <button onclick="login()">🔓 Log in with Reddit</button>
-  <div id="result">🔧 Awaiting login...</div>
+    <script>
+        // Reddit OAuth settings
+        const clientId = 'svkx52WYcdXXTuAdjnI1ng'; // Replace with your Reddit client ID
+        const redirectUri = 'http://localhost:8000/callback'; // Replace with your redirect URI
+        const userAgent = 'YOUR_USER_AGENT'; // Replace with your custom user agent
 
-  <script>
-    const CLIENT_ID = "I2eveBeiXWGeiof07Q7DFA";
-    const REDIRECT_URI = "https://nate0911.github.io/karma1/";
-    const SHEET_ENDPOINT = ""; // Optional: add your Google Sheet Web App URL
-
-    function login() {
-      const state = Math.random().toString(36).substring(2);
-      localStorage.setItem("oauth_state", state);
-      const authUrl =
-        `https://www.reddit.com/api/v1/authorize?client_id=${CLIENT_ID}` +
-        `&response_type=token&state=${state}` +
-        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-        `&duration=temporary&scope=identity`;
-      window.location.href = authUrl;
-    }
-
-    window.onload = () => {
-      if (!window.location.hash.includes("access_token")) return;
-
-      const params = new URLSearchParams(window.location.hash.slice(1));
-      const token = params.get("access_token");
-      const returnedState = params.get("state");
-      const savedState = localStorage.getItem("oauth_state");
-      const result = document.getElementById("result");
-
-      if (returnedState !== savedState) {
-        result.innerText = "⚠️ State mismatch. Possible CSRF attack.";
-        return;
-      }
-
-      localStorage.removeItem("oauth_state");
-
-      result.innerText = "🔍 Fetching your Reddit profile…";
-
-      fetch("https://oauth.reddit.com/api/v1/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "User-Agent": "KarmaCheckerv2 (by /u/Nate0911)"
+        // Function to redirect user to Reddit's OAuth authorization page
+        function redirectToReddit() {
+            const oauthUrl = `https://www.reddit.com/api/v1/authorize?client_id=${clientId}&response_type=code&state=random_state_string&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read,identity`;
+            window.location.href = oauthUrl; // Redirect to Reddit for authentication
         }
-      })
-      .then(res => res.json())
-      .then(data => {
-        const karma = (data.comment_karma || 0) + (data.link_karma || 0);
-        result.innerText = `👤 Username: ${data.name}\n💬 Total Karma: ${karma}`;
 
-        if (SHEET_ENDPOINT) {
-          logToSheet({ karma, name: data.name });
-        }
-      })
-      .catch(err => {
-        result.innerText = "⚠️ Error fetching profile:\n" + err.message;
-      });
-    };
-
-    function logToSheet(data) {
-      console.log("📦 Sending karma to logger:", data);
-
-      fetch(SHEET_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      })
-      .then(res => res.text())
-      .then(text => {
-        console.log("✅ Server responded:", te
+        // Check if we have a code in the URL (from Reddit's redirect)
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            
+            if (code) {
+                alert('Authorization Code: ' + code);
+                // Normally, here you'd send the code to your server to exchange for an access token
+                // For this example, we just alert the code to the user
+            }
+        };
+    </script>
+</body>
+</html>
