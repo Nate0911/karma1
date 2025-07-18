@@ -4,9 +4,9 @@
   <meta charset="UTF-8"/>
   <title>Reddit Karma Checker</title>
   <style>
-    body { font-family:sans-serif; padding:2rem; text-align:center; background:#f7f7f7; }
-    button { padding:0.75rem 1.5rem; font-size:1rem; }
-    #output { margin-top:1.5rem; font-size:1.25rem; }
+    body { font-family:sans-serif; text-align:center; padding:2rem }
+    button { padding:0.75rem 1.5rem; font-size:1rem }
+    #output { margin-top:1.5rem; font-size:1.25rem }
   </style>
 </head>
 <body>
@@ -17,18 +17,28 @@
   </div>
 
   <script>
-    // ─── EDIT ONLY THESE TWO LINES ───────────────────────────
-    const clientId   = 'BBrhOW-ej5qI-PpblSF-1A';   // ← your Installed‑App client ID
-    const redirectTo = 'https://nate0911.github.io/karma1/';  // ← must match Reddit app’s Redirect URI
-    // ──────────────────────────────────────────────────────────
+    // ─── CONFIG ────────────────────────────────────────
+    const clientId   = 'BBrhOW-ej5qI-PpblSF-1A';
+    const redirectTo = 'https://nate0911.github.io/karma1/';
+    const STATE_KEY  = 'reddit_oauth_state';
+    // ────────────────────────────────────────────────────
 
-    const stateToken = Math.random().toString(36).slice(2);
+    // Only create one stateToken and save it before redirect:
+    function getState() {
+      let s = sessionStorage.getItem(STATE_KEY);
+      if (!s) {
+        s = Math.random().toString(36).substr(2);
+        sessionStorage.setItem(STATE_KEY, s);
+      }
+      return s;
+    }
 
     document.getElementById('loginBtn').onclick = () => {
+      const state = getState();
       const u = new URL('https://www.reddit.com/api/v1/authorize.compact');
       u.searchParams.set('client_id',     clientId);
       u.searchParams.set('response_type', 'token');
-      u.searchParams.set('state',         stateToken);
+      u.searchParams.set('state',         state);
       u.searchParams.set('redirect_uri',  redirectTo);
       u.searchParams.set('duration',      'temporary');
       u.searchParams.set('scope',         'identity read');
@@ -36,16 +46,24 @@
     };
 
     window.addEventListener('load', () => {
-      if (!location.hash) return;
-      const p = new URLSearchParams(location.hash.slice(1));
-      if (p.get('state') !== stateToken) {
-        return alert('State mismatch—try again.');
+      if (!location.hash) return;  // no token yet
+      const params = new URLSearchParams(location.hash.slice(1));
+      const returnedState = params.get('state');
+      const expectedState = sessionStorage.getItem(STATE_KEY);
+
+      if (!returnedState || returnedState !== expectedState) {
+        return alert('State mismatch—please try again.');
       }
-      const tok = p.get('access_token');
-      if (tok) {
+
+      // Clean up
+      sessionStorage.removeItem(STATE_KEY);
+
+      // Grab the token and fetch karma
+      const token = params.get('access_token');
+      if (token) {
         fetch('https://oauth.reddit.com/api/v1/me', {
           headers: {
-            'Authorization': 'bearer ' + tok,
+            'Authorization': 'bearer ' + token,
             'User-Agent':    'karmaChecker/1.0 by u/YourRedditUsername'
           }
         })
