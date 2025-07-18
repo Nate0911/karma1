@@ -4,62 +4,58 @@
   <meta charset="UTF-8" />
   <title>Reddit Karma Checker</title>
   <style>
-    body { font-family: sans-serif; padding:2rem; background:#f0f0f0; text-align:center }
-    button { padding:0.75rem 1.5rem; font-size:1rem; }
-    #result { margin-top:1.5rem; font-size:1.25rem; }
+    body { font-family:sans-serif; padding:2rem; text-align:center }
+    button { font-size:1rem; padding:0.75rem 1.5rem; }
+    #out { margin-top:1.5rem; font-size:1.25rem; }
   </style>
 </head>
 <body>
   <h1>🔐 Login with Reddit</h1>
-  <button id="btn">Allow Reddit Access</button>
-
-  <div id="result" style="display:none">
+  <button id="go">Allow Access</button>
+  <div id="out" style="display:none">
     Your total karma is: <strong id="karma"></strong>
   </div>
 
   <script>
-    // ─── CONFIG ───────────────────────────────────────
-    const clientId   = 'svkx52WYcdXXTuAdjnI1ng';  // your Reddit app’s client ID
+    // ── CONFIG ─────────────────────────────────
+    const clientId   = 'fhziCN3Z58gp8AHSxJaq7Q';
     const redirectTo = window.location.origin + window.location.pathname;
-    const stateToken = Math.random().toString(36).substring(2);
-    // ────────────────────────────────────────────────────
+    const stateToken = Math.random().toString(36).slice(2);
+    // ───────────────────────────────────────────
 
-    document.getElementById('btn').onclick = () => {
-      const url = new URL('https://www.reddit.com/api/v1/authorize.compact');
-      url.searchParams.set('client_id',    clientId);
-      url.searchParams.set('response_type','token');         // implicit flow
-      url.searchParams.set('state',        stateToken);
-      url.searchParams.set('redirect_uri', redirectTo);
-      url.searchParams.set('duration',     'temporary');     // or 'permanent'
-      url.searchParams.set('scope',        'identity read');
-      window.location = url;
+    document.getElementById('go').onclick = () => {
+      const u = new URL('https://www.reddit.com/api/v1/authorize.compact');
+      u.searchParams.set('client_id',    clientId);
+      u.searchParams.set('response_type','token');    // implicit
+      u.searchParams.set('state',        stateToken);
+      u.searchParams.set('redirect_uri', redirectTo);
+      u.searchParams.set('duration',     'temporary');
+      u.searchParams.set('scope',        'identity read');
+      window.location = u;
     };
 
     window.addEventListener('load', () => {
-      // If redirected back with a hash fragment
-      if (!window.location.hash) return;
-      const params = new URLSearchParams(window.location.hash.slice(1));
-      if (params.get('state') !== stateToken) {
-        return alert('State mismatch – possible CSRF.');
+      if (!location.hash) return;
+      const p = new URLSearchParams(location.hash.slice(1));
+      if (p.get('state') !== stateToken) {
+        return alert('State mismatch—try again.');
       }
-      const token = params.get('access_token');
-      if (token) fetchKarma(token);
+      const tok = p.get('access_token');
+      if (tok) {
+        fetch('https://oauth.reddit.com/api/v1/me', {
+          headers: {
+            'Authorization': 'bearer ' + tok,
+            'User-Agent':    'karmaChecker/1.0 by u/YourRedditUsername'
+          }
+        })
+        .then(r => r.json())
+        .then(d => {
+          document.getElementById('karma').textContent = d.total_karma;
+          document.getElementById('out').style.display = 'block';
+        })
+        .catch(e => alert('Fetch error: '+e));
+      }
     });
-
-    function fetchKarma(token) {
-      fetch('https://oauth.reddit.com/api/v1/me', {
-        headers: {
-          'Authorization': 'bearer ' + token,
-          'User-Agent':    'karmaChecker/1.0 by u/YourRedditUsername'
-        }
-      })
-      .then(r => r.json())
-      .then(data => {
-        document.getElementById('karma').textContent = data.total_karma;
-        document.getElementById('result').style.display = 'block';
-      })
-      .catch(err => alert('Error fetching karma: ' + err));
-    }
   </script>
 </body>
 </html>
