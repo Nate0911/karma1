@@ -1,104 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reddit OAuth - Display Karma</title>
+  <meta charset="UTF-8" />
+  <title>Reddit Karma Checker</title>
+  <style>
+    body { font-family: sans-serif; padding:2rem; background:#f9f9f9 }
+    button { padding:0.5rem 1rem; font-size:1rem; }
+    #karma { margin-top:1rem; font-size:1.25rem; }
+  </style>
 </head>
 <body>
-    <h1>Login with Reddit to Check Your Karma</h1>
-    <button id="loginButton">Login with Reddit</button>
+  <h1>🔐 Login with Reddit</h1>
+  <button id="login">Log in</button>
+  <div id="karma" style="display:none">
+    Your total karma: <strong id="count"></strong>
+  </div>
 
-    <div id="karmaContainer" style="display: none;">
-        <h2>Your Karma: <span id="karmaCount"></span></h2>
-    </div>
+  <script>
+    // ─ CONFIG ─────────────────────────────────────
+    const clientId   = 'svkx52WYcdXXTuAdjnI1ng';
+    const redirectTo = window.location.origin + window.location.pathname; 
+    const stateToken = Math.random().toString(36).substring(2);
+    // ───────────────────────────────────────────────
 
-    <script>
-        // Reddit OAuth settings
-        const clientId = 'svkx52WYcdXXTuAdjnI1ng'; // Your Reddit client ID
-        const redirectUri = window.location.href; // Redirect to the same GitHub page
-        const userAgent = 'myRedditApp:v1.0 (by /u/YourRedditUsername)'; // Custom user-agent string
+    document.getElementById('login').onclick = () => {
+      const url = new URL('https://www.reddit.com/api/v1/authorize.compact');
+      url.searchParams.set('client_id',    clientId);
+      url.searchParams.set('response_type','token');          // implicit flow
+      url.searchParams.set('state',        stateToken);
+      url.searchParams.set('redirect_uri', redirectTo);
+      url.searchParams.set('duration',     'temporary');
+      url.searchParams.set('scope',        'identity read');
+      window.location = url;
+    };
 
-        // Function to redirect user to Reddit for OAuth authorization
-        function redirectToReddit() {
-            const oauthUrl = `https://www.reddit.com/api/v1/authorize?client_id=${clientId}&response_type=code&state=random_state_string&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read,identity`;
-            window.location.href = oauthUrl; // Redirect the user to Reddit for authentication
+    window.addEventListener('load', () => {
+      // if we were just redirected back with a token...
+      if (window.location.hash) {
+        const hash = new URLSearchParams(window.location.hash.slice(1));
+        if (hash.get('state') !== stateToken) {
+          return alert('State mismatch – possible CSRF.');
         }
+        const token = hash.get('access_token');
+        if (token) fetchKarma(token);
+      }
+    });
 
-        // Add event listener to the button after the page has loaded
-        document.getElementById('loginButton').addEventListener('click', function() {
-            redirectToReddit(); // Call the redirect function when button is clicked
-        });
-
-        // When the page loads, check for the "code" parameter in the URL (from Reddit's redirect)
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const code = urlParams.get('code');
-            
-            if (code) {
-                // Display the code (for testing purposes)
-                alert('Authorization Code: ' + code);
-
-                // Exchange the code for an access token (via Reddit API)
-                fetchAccessToken(code);
-            }
-        };
-
-        // Function to exchange the authorization code for an access token
-        function fetchAccessToken(code) {
-            const tokenUrl = 'https://www.reddit.com/api/v1/access_token';
-            const data = new URLSearchParams();
-            data.append('grant_type', 'authorization_code');
-            data.append('code', code);
-            data.append('redirect_uri', redirectUri);
-
-            // Make a POST request to Reddit API to get the access token
-            fetch(tokenUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Basic ' + btoa(clientId + ':') // Reddit requires client ID in base64
-                },
-                body: data
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.access_token) {
-                    // Access token received, use it to fetch the karma count
-                    fetchKarmaCount(data.access_token);
-                } else {
-                    alert('Failed to get access token');
-                }
-            })
-            .catch(error => console.error('Error fetching access token:', error));
+    function fetchKarma(token) {
+      fetch('https://oauth.reddit.com/api/v1/me', {
+        headers: {
+          'Authorization': 'bearer ' + token,
+          'User-Agent': 'karmaApp/1.0 by u/YourRedditUsername'
         }
-
-        // Function to fetch the user's karma count from Reddit
-        function fetchKarmaCount(accessToken) {
-            // Reddit API URL for fetching user info
-            const apiUrl = 'https://oauth.reddit.com/api/v1/me';
-
-            fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                    'Authorization': 'bearer ' + accessToken,
-                    'User-Agent': userAgent
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data) {
-                    // Extract karma count from the response
-                    const karmaCount = data.total_karma;
-
-                    // Display the karma count on the page
-                    document.getElementById('karmaCount').textContent = karmaCount;
-                    document.getElementById('karmaContainer').style.display = 'block';
-                } else {
-                    alert('Failed to fetch karma data');
-                }
-            })
-            .catch(error => console.error('Error fetching karma count:', error));
-        }
-    </script>
+      })
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('count').textContent = d.total_karma;
+        document.getElementById('karma').style.display = 'block';
+      })
+      .catch(console.error);
+    }
+  </script>
 </body>
 </html>
