@@ -1,36 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <title>Reddit Karma Checker</title>
   <style>
-    body { font-family:sans-serif; padding:2rem; text-align:center }
-    button { font-size:1rem; padding:0.75rem 1.5rem; }
-    #out { margin-top:1.5rem; font-size:1.25rem; }
+    body { font-family:sans-serif; padding:2rem; text-align:center; background:#f7f7f7; }
+    button { padding:0.75rem 1.5rem; font-size:1rem; }
+    #output { margin-top:1.5rem; font-size:1.25rem; }
   </style>
 </head>
 <body>
   <h1>🔐 Login with Reddit</h1>
-  <button id="go">Allow Access</button>
-  <div id="out" style="display:none">
-    Your total karma is: <strong id="karma"></strong>
+  <button id="loginBtn">Allow Access</button>
+  <div id="output" style="display:none">
+    Your total karma is: <strong id="karmaCount"></strong>
   </div>
 
   <script>
-    // ── CONFIG ─────────────────────────────────
-    const clientId   = 'fhziCN3Z58gp8AHSxJaq7Q';
-    const redirectTo = window.location.origin + window.location.pathname;
-    const stateToken = Math.random().toString(36).slice(2);
-    // ───────────────────────────────────────────
+    // ─── EDIT ONLY THESE TWO LINES ───────────────────────────
+    const clientId   = 'BBrhOW-ej5qI-PpblSF-1A';   // ← your Installed‑App client ID
+    const redirectTo = 'https://nate0911.github.io/karma1/';  // ← must match Reddit app’s Redirect URI
+    // ──────────────────────────────────────────────────────────
 
-    document.getElementById('go').onclick = () => {
+    const stateToken = Math.random().toString(36).slice(2);
+
+    document.getElementById('loginBtn').onclick = () => {
       const u = new URL('https://www.reddit.com/api/v1/authorize.compact');
-      u.searchParams.set('client_id',    clientId);
-      u.searchParams.set('response_type','token');    // implicit
-      u.searchParams.set('state',        stateToken);
-      u.searchParams.set('redirect_uri', redirectTo);
-      u.searchParams.set('duration',     'temporary');
-      u.searchParams.set('scope',        'identity read');
+      u.searchParams.set('client_id',     clientId);
+      u.searchParams.set('response_type', 'token');
+      u.searchParams.set('state',         stateToken);
+      u.searchParams.set('redirect_uri',  redirectTo);
+      u.searchParams.set('duration',      'temporary');
+      u.searchParams.set('scope',         'identity read');
       window.location = u;
     };
 
@@ -50,10 +51,10 @@
         })
         .then(r => r.json())
         .then(d => {
-          document.getElementById('karma').textContent = d.total_karma;
-          document.getElementById('out').style.display = 'block';
+          document.getElementById('karmaCount').textContent = d.total_karma;
+          document.getElementById('output').style.display = 'block';
         })
-        .catch(e => alert('Fetch error: '+e));
+        .catch(e => alert('Error fetching karma: ' + e));
       }
     });
   </script>
