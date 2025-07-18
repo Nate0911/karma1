@@ -4,61 +4,61 @@
   <meta charset="UTF-8" />
   <title>Reddit Karma Checker</title>
   <style>
-    body { font-family: sans-serif; padding:2rem; background:#f9f9f9 }
-    button { padding:0.5rem 1rem; font-size:1rem; }
-    #karma { margin-top:1rem; font-size:1.25rem; }
+    body { font-family: sans-serif; padding:2rem; background:#f0f0f0; text-align:center }
+    button { padding:0.75rem 1.5rem; font-size:1rem; }
+    #result { margin-top:1.5rem; font-size:1.25rem; }
   </style>
 </head>
 <body>
   <h1>🔐 Login with Reddit</h1>
-  <button id="login">Log in</button>
-  <div id="karma" style="display:none">
-    Your total karma: <strong id="count"></strong>
+  <button id="btn">Allow Reddit Access</button>
+
+  <div id="result" style="display:none">
+    Your total karma is: <strong id="karma"></strong>
   </div>
 
   <script>
-    // ─ CONFIG ─────────────────────────────────────
-    const clientId   = 'svkx52WYcdXXTuAdjnI1ng';
-    const redirectTo = window.location.origin + window.location.pathname; 
+    // ─── CONFIG ───────────────────────────────────────
+    const clientId   = 'svkx52WYcdXXTuAdjnI1ng';  // your Reddit app’s client ID
+    const redirectTo = window.location.origin + window.location.pathname;
     const stateToken = Math.random().toString(36).substring(2);
-    // ───────────────────────────────────────────────
+    // ────────────────────────────────────────────────────
 
-    document.getElementById('login').onclick = () => {
+    document.getElementById('btn').onclick = () => {
       const url = new URL('https://www.reddit.com/api/v1/authorize.compact');
       url.searchParams.set('client_id',    clientId);
-      url.searchParams.set('response_type','token');          // implicit flow
+      url.searchParams.set('response_type','token');         // implicit flow
       url.searchParams.set('state',        stateToken);
       url.searchParams.set('redirect_uri', redirectTo);
-      url.searchParams.set('duration',     'temporary');
+      url.searchParams.set('duration',     'temporary');     // or 'permanent'
       url.searchParams.set('scope',        'identity read');
       window.location = url;
     };
 
     window.addEventListener('load', () => {
-      // if we were just redirected back with a token...
-      if (window.location.hash) {
-        const hash = new URLSearchParams(window.location.hash.slice(1));
-        if (hash.get('state') !== stateToken) {
-          return alert('State mismatch – possible CSRF.');
-        }
-        const token = hash.get('access_token');
-        if (token) fetchKarma(token);
+      // If redirected back with a hash fragment
+      if (!window.location.hash) return;
+      const params = new URLSearchParams(window.location.hash.slice(1));
+      if (params.get('state') !== stateToken) {
+        return alert('State mismatch – possible CSRF.');
       }
+      const token = params.get('access_token');
+      if (token) fetchKarma(token);
     });
 
     function fetchKarma(token) {
       fetch('https://oauth.reddit.com/api/v1/me', {
         headers: {
           'Authorization': 'bearer ' + token,
-          'User-Agent': 'karmaApp/1.0 by u/YourRedditUsername'
+          'User-Agent':    'karmaChecker/1.0 by u/YourRedditUsername'
         }
       })
       .then(r => r.json())
-      .then(d => {
-        document.getElementById('count').textContent = d.total_karma;
-        document.getElementById('karma').style.display = 'block';
+      .then(data => {
+        document.getElementById('karma').textContent = data.total_karma;
+        document.getElementById('result').style.display = 'block';
       })
-      .catch(console.error);
+      .catch(err => alert('Error fetching karma: ' + err));
     }
   </script>
 </body>
