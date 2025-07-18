@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KarmaCheck GitHub v1</title>
+</head>
+<body>
+  <h1>🧪 KarmaCheck GitHub v1 — OAuth Test</h1>
+
+  <!-- Reddit login button -->
+  <a id="loginBtn" href="#" style="font-size: 20px; padding: 10px; background: #ff4500; color: white; text-decoration: none; border-radius: 5px;">
+    🔐 Login with Reddit
+  </a>
+
+  <div id="userInfo" style="margin-top: 30px; font-family: sans-serif;"></div>
+
+  <script>
+    const client_id = "I2eveBeiXWGeiof07Q7DFA"; // <<< paste your Reddit client ID here
+    const redirect_uri = "https://nate0911.github.io/karma1/";
+    const scope = "identity read";
+    const state = "karma1_v1state"; // can be any random string
+
+    // Build Reddit login URL
+    const loginUrl = 
+      `https://www.reddit.com/api/v1/authorize?client_id=${client_id}` +
+      `&response_type=token` +
+      `&state=${state}` +
+      `&redirect_uri=${encodeURIComponent(redirect_uri)}` +
+      `&duration=temporary` +
+      `&scope=${encodeURIComponent(scope)}`;
+
+    // Set login link
+    document.getElementById("loginBtn").href = loginUrl;
+
+    // Extract token after redirect
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const access_token = params.get("access_token");
+
+    if (access_token) {
+      fetch("https://oauth.reddit.com/api/v1/me", {
+        headers: {
+          "Authorization": `bearer ${access_token}`,
+          "User-Agent": "karma1 by u/yourusername"
+        }
+      })
+      .then(res => res.json())
+      .then(user => {
+        document.getElementById("userInfo").innerHTML = `
+          <h2>👤 Logged in as: <strong>${user.name}</strong></h2>
+          <p>💬 Comment Karma: <b>${user.comment_karma}</b></p>
+          <p>🔗 Link Karma: <b>${user.link_karma}</b></p>
+          <p>📆 Joined Reddit: ${new Date(user.created_utc * 1000).toLocaleDateString()}</p>
+        `;
+      })
+      .catch(err => {
+        console.error("Reddit API error:", err);
+        document.getElementById("userInfo").textContent = "❌ Could not fetch Reddit data.";
+      });
+    }
+  </script>
+</body>
+</html>
